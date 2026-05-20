@@ -2,102 +2,168 @@ name: FinanceManager CI/CD
 
 on:
   push:
-    branches: [ main, develop, "feature/**" ]
   pull_request:
-    branches: [ main, develop ]
 
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    env:
-      DOTNET_VERSION: '8.0.x'
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: '8.0.x'
 
-      - name: Restore
+      - name: Restore dependencies
         run: dotnet restore FinanceManager2.0.sln
 
-      - name: Build
+      - name: Build solution
         run: dotnet build FinanceManager2.0.sln --configuration Release --no-restore
 
   test:
     name: Unit tests
     runs-on: ubuntu-latest
     needs: build
-    env:
-      DOTNET_VERSION: '8.0.x'
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: '8.0.x'
 
-      - name: Restore
+      - name: Restore dependencies
         run: dotnet restore FinanceManager2.0.sln
 
       - name: Run tests
-        run: dotnet test FinanceManager2.0.sln --configuration Release --no-restore --verbosity normal --collect:"XPlat Code Coverage"
+        run: dotnet test FinanceManager2.0.sln --configuration Release --no-restore --verbosity normal
 
   publish:
     name: Publish artifact
     runs-on: ubuntu-latest
     needs: test
-    env:
-      DOTNET_VERSION: '8.0.x'
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: '8.0.x'
 
-      - name: Restore
+      - name: Restore dependencies
         run: dotnet restore FinanceManager2.0.sln
 
-      - name: Publish
-        run: dotnet publish FinanceManager2.0.csproj --configuration Release --no-restore --output ./publish
+      - name: Publish app
+        run: dotnet publish FinanceManager2.0.csproj -c Release -o ./publish
+
+      - name: Zip published app
+        run: cd publish && zip -r ../publish.zip .
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: finance-manager-app
-          path: ./publish
+          path: publish.zip
 
-  deploy:
-    name: Deploy to Azure
+  deploy-main:
+    name: Deploy main full project
     runs-on: ubuntu-latest
     needs: publish
-    if: ${{ github.event_name == 'push' }}
-    env:
-      AZURE_WEBAPP_NAME: ${{ secrets.AZURE_WEBAPP_NAME }}
-      AZURE_WEBAPP_PUBLISH_PROFILE: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+    if: github.ref == 'refs/heads/main'
+
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: finance-manager-app
-          path: ./publish
 
-      - name: Skip deploy when Azure secrets are missing
-        if: ${{ env.AZURE_WEBAPP_NAME == '' || env.AZURE_WEBAPP_PUBLISH_PROFILE == '' }}
-        run: echo "Azure secrets are not configured, so deployment is skipped. Build and tests still passed."
-
-      - name: Deploy to Azure Web App
-        if: ${{ env.AZURE_WEBAPP_NAME != '' && env.AZURE_WEBAPP_PUBLISH_PROFILE != '' }}
+      - name: Deploy main to Azure
         uses: azure/webapps-deploy@v3
         with:
-          app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: ./publish
+          app-name: sdghjk
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_MAIN }}
+          package: publish.zip
+
+  deploy-recurring:
+    name: Deploy recurring payments
+    runs-on: ubuntu-latest
+    needs: publish
+    if: github.ref == 'refs/heads/feature/recurring-paymentsVlad'
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: finance-manager-app
+
+      - name: Deploy recurring payments to Azure
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: fm-recurring-vlad
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_RECURRING }}
+          package: publish.zip
+
+  deploy-filtering:
+    name: Deploy transaction filtering
+    runs-on: ubuntu-latest
+    needs: publish
+    if: github.ref == 'refs/heads/feature-ihor-transaction-filtering'
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: finance-manager-app
+
+      - name: Deploy transaction filtering to Azure
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: fm-filtering-ihor
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_FILTERING }}
+          package: publish.zip
+
+  deploy-search:
+    name: Deploy transaction search
+    runs-on: ubuntu-latest
+    needs: publish
+    if: github.ref == 'refs/heads/feature-kostia-transaction-search'
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: finance-manager-app
+
+      - name: Deploy transaction search to Azure
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: fm-search-kostia
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_SEARCH }}
+          package: publish.zip
+
+  deploy-comparison:
+    name: Deploy expense comparison
+    runs-on: ubuntu-latest
+    needs: publish
+    if: github.ref == 'refs/heads/feature-vlad-expense-comparison'
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: finance-manager-app
+
+      - name: Deploy expense comparison to Azure
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: fm-comparison-vlad
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_COMPARISON }}
+          package: publish.zip
