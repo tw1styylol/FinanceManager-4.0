@@ -164,6 +164,6 @@ jobs:
       - name: Deploy expense comparison to Azure
         uses: azure/webapps-deploy@v3
         with:
-          app-name: fm-comparison-vlad
+          app-name: fm-comparison-ylianka
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_COMPARISON }}
           package: publish.zip
