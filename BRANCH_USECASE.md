@@ -8,3 +8,4 @@
 - порівняння витрат;
 - unit-тести;
 - GitHub Actions CI/CD.
+Azure deployment configured
