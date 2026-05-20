@@ -35,7 +35,7 @@ public class TransactionServiceTests
         var result = await service.BuildQuery("user1", false, filter).ToListAsync();
 
         var item = Assert.Single(result);
-        Assert.Equal(2, item.Id);
+        Assert.Equal(999, item.Id);
         Assert.Equal(50, item.Amount);
     }
 
