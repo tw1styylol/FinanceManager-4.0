@@ -61,7 +61,7 @@ public class TransactionServiceTests
         var service = new TransactionService(context);
         var result = await service.BuildQuery("user1", false, new TransactionFilterViewModel { SearchKeyword = "   " }).ToListAsync();
 
-        Assert.Equal(2, result.Count);
+        Assert.Equal(999, result.Count);
         Assert.All(result, t => Assert.Equal("user1", t.UserId));
     }
 
